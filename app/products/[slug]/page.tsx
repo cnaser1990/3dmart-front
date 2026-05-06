@@ -8,12 +8,13 @@ import { formatPrice } from '@/lib/utils'
 import useCartStore from '@/store/cartStore'
 import Loading from '@/components/Loading'
 import ErrorMessage from '@/components/ErrorMessage'
+import { Product } from '@/types'
 
 export default function ProductDetailPage() {
   const params = useParams()
-  const [product, setProduct] = useState(null)
+  const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const addItem = useCartStore(state => state.addItem)
@@ -26,10 +27,10 @@ export default function ProductDetailPage() {
     try {
       setLoading(true)
       setError(null)
-      const data = await getProduct(params.slug)
+      const data = await getProduct(params.slug as string)
       setProduct(data)
     } catch (err) {
-      setError(err.message)
+      setError(err instanceof Error ? err.message : 'خطای ناشناخته')
     } finally {
       setLoading(false)
     }
@@ -44,16 +45,22 @@ export default function ProductDetailPage() {
       name: product.name,
       price: product.final_price,
       image: product.primary_image,
+      quantity: quantity, // ← اینجا اضافه شد
+      stock: product.stock,
     })
     
-    alert('✅ به سبد خرید اضافه شد')
+    alert(`✅ ${quantity} عدد به سبد خرید اضافه شد`)
   }
   
   if (loading) return <Loading />
   if (error) return <ErrorMessage message={error} retry={loadProduct} />
   if (!product) return <ErrorMessage message="محصول یافت نشد" />
   
-  const images = product.images?.length > 0 ? product.images : [{ image: product.primary_image }]
+  const images = product.images && product.images.length > 0 
+    ? product.images 
+    : product.primary_image 
+    ? [{ id: 0, image: product.primary_image, alt_text: product.name, is_primary: true, order: 0 }] 
+    : []
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -135,7 +142,7 @@ export default function ProductDetailPage() {
           <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-600">نوع:</span>
-              <span className="font-medium">{product.product_type_display || product.product_type}</span>
+              <span className="font-medium">{product.product_type}</span>
             </div>
             {product.material && (
               <div className="flex justify-between">
@@ -164,7 +171,7 @@ export default function ProductDetailPage() {
           </div>
           
           {/* تگ‌ها */}
-          {product.tags?.length > 0 && (
+          {product.tags && product.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
               {product.tags.map(tag => (
                 <span key={tag.id} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
@@ -187,6 +194,7 @@ export default function ProductDetailPage() {
               <button
                 onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
                 className="px-4 py-2 hover:bg-gray-100"
+                disabled={quantity >= product.stock}
               >
                 +
               </button>
@@ -195,7 +203,7 @@ export default function ProductDetailPage() {
             <button
               onClick={handleAddToCart}
               disabled={!product.is_available}
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               {product.is_available ? '🛒 افزودن به سبد خرید' : 'ناموجود'}
             </button>

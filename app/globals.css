@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @font-face {
   font-family: 'Vazirmatn';
   src: url('/fonts/Vazirmatn-Regular.woff2') format('woff2');
@@ -29,12 +28,19 @@
 
 body {
   direction: rtl;
-  background-color: #0071e3;
+  font-family: 'Vazirmatn', sans-serif;
 }
 
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
