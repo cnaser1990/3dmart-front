@@ -143,10 +143,10 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pb-12 overflow-hidden">
+    <div className="min-h-screen bg-zinc-950 pt-16 text-white pb-12 overflow-hidden">
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 px-6 overflow-hidden min-h-[70vh] flex items-center justify-center">
+      <section className="relative pt-32 md:pt-40 pb-16 px-6 overflow-hidden min-h-[70vh] flex flex-col justify-center">
         
         {/* Background Effects */}
         <div className="absolute inset-0 bg-[radial-gradient(at_center,#27272a_0%,transparent_70%)]" />
@@ -187,7 +187,7 @@ export default async function HomePage() {
         {/* گوشه پایین چپ */}
         <div className="absolute bottom-8 left-8 w-32 h-32 md:w-44 md:h-44 hidden lg:block">
           <Image
-            src="images/jin-kazama.png"
+            src="images/Jin_Kazama.png"
             alt=""
             fill
             className="object-contain drop-shadow-[0_0_20px_rgba(139,92,246,0.4)] opacity-80"

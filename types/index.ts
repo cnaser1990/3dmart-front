@@ -24,29 +24,29 @@ export interface Tag {
 }
 
 export interface Product {
-  id: number
-  name: string
-  slug: string
-  product_type: string
-  product_type_display?: string
-  material?: string
-  description?: string
-  short_description?: string
-  price: number
-  discount_percent: number
-  final_price: number
-  stock: number
-  is_active: boolean
-  is_available: boolean
-  is_featured: boolean
-  primary_image?: string
-  images?: ProductImage[]
-  category?: Category
-  tags?: Tag[]
-  print_time_hours?: number
-  weight_grams?: number
-  created_at: string
-  updated_at: string
+  id: number;
+  name: string;
+  slug: string;
+  product_type: string;
+  material?: string;
+  description?: string;
+  short_description?: string;
+  price: number;
+  discount_percent: number;
+  final_price: number;
+  stock: number;
+  preparation_time_days: number;  // ✅
+  is_active: boolean;
+  is_available: boolean;
+  is_featured: boolean;
+  availability_text: string;  // ✅
+  primary_image?: string;
+  images?: ProductImage[];
+  category?: Category;
+  tags?: Tag[];
+  print_time_hours?: number;
+  weight_grams?: number;
+  created_at: string;
 }
 
 // ─── Consumable ──────────────────────────────────────
@@ -219,4 +219,5 @@ export interface CartItem {
   price: number
   image?: string
   quantity: number
+  unitPrice: number
 }
