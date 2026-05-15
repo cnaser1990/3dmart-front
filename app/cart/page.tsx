@@ -14,7 +14,6 @@ import {
   Cuboid,
   Truck,
   ShieldCheck,
-  Package,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
