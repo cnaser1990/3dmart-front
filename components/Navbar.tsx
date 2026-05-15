@@ -1,22 +1,35 @@
+// components/Navbar.tsx
 'use client';
 
 import Link from 'next/link';
 import { useState } from 'react';
 import { ShoppingCart, User, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useSyncExternalStore } from 'react';
 
 const navLinks = [
   { href: '/products', label: 'محصولات' },
   { href: '/consumables', label: 'مواد مصرفی' },
-  { href: '/track', label: 'پیگیری سفارش' },
-  { href: '/contact-us', label: 'محصول خودتون رو سفارش بدید!' },
+  { href: '/faq', label: 'سوالات متداول' },
+  { href: '/terms', label: 'قوانین' },
+  { href: 'https://rubika.ir/neseron', label: 'محصول خودتون رو سفارش بدید!' },
 ];
+
+function useIsLoggedIn() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => !!localStorage.getItem('access_token'),
+    () => false
+  );
+}
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const isLoggedIn = useIsLoggedIn();
   const { getTotalItems } = useCart();
 
   const totalItems = getTotalItems();
+  const profileHref = isLoggedIn ? '/profile' : '/auth/login';
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5">
@@ -41,16 +54,14 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-1">
+
           {/* Cart */}
           <Link href="/cart" className="relative p-2 rounded-xl hover:bg-white/5 transition-colors">
             <ShoppingCart size={20} className="text-zinc-300" />
-            
             <span
               suppressHydrationWarning
               className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1.5 bg-violet-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
-                totalItems > 0
-                  ? 'scale-100 opacity-100'
-                  : 'scale-0 opacity-0'
+                totalItems > 0 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
               }`}
             >
               {totalItems > 99 ? '99+' : totalItems}
@@ -58,8 +69,14 @@ export default function Navbar() {
           </Link>
 
           {/* Profile */}
-          <Link href="/auth" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+          <Link
+            href={profileHref}
+            className="relative p-2 rounded-xl hover:bg-white/5 transition-colors"
+          >
             <User size={20} className="text-zinc-300" />
+            {isLoggedIn && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-400 rounded-full border border-zinc-950" />
+            )}
           </Link>
 
           {/* Mobile Toggle */}
@@ -85,11 +102,11 @@ export default function Navbar() {
             </Link>
           ))}
           <Link
-            href="/auth/login"
+            href={profileHref}
             onClick={() => setIsOpen(false)}
             className="text-zinc-400 hover:text-white font-medium py-3 transition-colors"
           >
-            ورود / ثبت‌نام
+            {isLoggedIn ? 'پروفایل من' : 'ورود / ثبت‌نام'}
           </Link>
         </div>
       )}

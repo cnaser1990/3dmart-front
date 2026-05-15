@@ -196,7 +196,7 @@ export default async function HomePage() {
 
         {/* Content */}
         <div className="container mx-auto max-w-3xl text-center relative z-30">
-          <div className="inline-flex items-center gap-2.5 px-6 py-2.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl mb-8">
+          <div className="inline-flex items-center gap-2.5 px-6 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl mb-8">
             <Sparkles className="text-violet-400" size={20} />
             <span className="font-bold text-sm tracking-widest text-white/90">
               مرجع اکشن فیگور و چیزای باحال!
