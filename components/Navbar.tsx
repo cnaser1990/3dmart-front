@@ -2,10 +2,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { ShoppingCart, User, Menu, X } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useSyncExternalStore } from 'react';
 
 const navLinks = [
   { href: '/products', label: 'محصولات' },
@@ -15,21 +13,11 @@ const navLinks = [
   { href: 'https://rubika.ir/neseron', label: 'محصول خودتون رو سفارش بدید!' },
 ];
 
-function useIsLoggedIn() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => !!localStorage.getItem('access_token'),
-    () => false
-  );
-}
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
-  const isLoggedIn = useIsLoggedIn();
   const { getTotalItems } = useCart();
 
   const totalItems = getTotalItems();
-  const profileHref = isLoggedIn ? '/profile' : '/auth/login';
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5">
@@ -69,47 +57,11 @@ export default function Navbar() {
           </Link>
 
           {/* Profile */}
-          <Link
-            href={profileHref}
-            className="relative p-2 rounded-xl hover:bg-white/5 transition-colors"
-          >
-            <User size={20} className="text-zinc-300" />
-            {isLoggedIn && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-400 rounded-full border border-zinc-950" />
-            )}
-          </Link>
-
-          {/* Mobile Toggle */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-xl hover:bg-white/5 transition-colors"
-          >
-            {isOpen ? <X size={20} className="text-white" /> : <Menu size={20} className="text-white" />}
-          </button>
+          
         </div>
       </div>
 
-      {isOpen && (
-        <div className="md:hidden bg-zinc-950/95 backdrop-blur-xl border-t border-white/5 px-6 py-6 flex flex-col gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setIsOpen(false)}
-              className="text-zinc-400 hover:text-white font-medium py-3 border-b border-white/5 transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <Link
-            href={profileHref}
-            onClick={() => setIsOpen(false)}
-            className="text-zinc-400 hover:text-white font-medium py-3 transition-colors"
-          >
-            {isLoggedIn ? 'پروفایل من' : 'ورود / ثبت‌نام'}
-          </Link>
-        </div>
-      )}
+      
     </header>
   );
 }
