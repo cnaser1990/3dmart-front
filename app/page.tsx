@@ -120,7 +120,8 @@ function ConsumableCard({ consumable }: { consumable: Consumable }) {
         <h3 className="font-bold text-lg text-white mb-3 line-clamp-2 group-hover:text-cyan-400 transition-colors">
           {consumable.name}
         </h3>
-        <div className="flex items-end justify-between">
+        
+        <div className="flex items-end justify-between mb-3">
           <div className="text-2xl font-black text-white">
             {consumable.selling_price?.toLocaleString('fa-IR') || "—"}
             <span className="text-sm font-medium text-zinc-400 mr-1">تومان</span>
@@ -128,6 +129,21 @@ function ConsumableCard({ consumable }: { consumable: Consumable }) {
           <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-cyan-500 group-hover:text-white border border-white/10 group-hover:border-cyan-500 transition-all">
             <ArrowLeft size={18} />
           </div>
+        </div>
+
+        {/* Stock Status */}
+        <div className="pt-3 border-t border-white/5">
+          {consumable.stock > 0 ? (
+            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+              <span className="text-emerald-400">✓</span>
+              موجود — {consumable.stock} عدد
+            </span>
+          ) : (
+            <span className="text-[10px] text-rose-400 font-bold flex items-center gap-1">
+              <span className="text-rose-400">✕</span>
+              ناموجود
+            </span>
+          )}
         </div>
       </div>
     </Link>
