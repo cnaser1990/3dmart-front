@@ -12,8 +12,6 @@ const getImageUrl = (path: string | null | undefined) => {
   return `http://localhost:8000${path}`;
 };
 
-// ─── Data Fetching ────────────────────────────────────
-
 async function getRecentProducts(): Promise<Product[]> {
   try {
     const res = await fetch(`${API_URL}/store/products/`, { cache: 'no-store' });
@@ -35,8 +33,6 @@ async function getConsumables(): Promise<Consumable[]> {
     return [];
   }
 }
-
-// ─── Components ───────────────────────────────────────
 
 function ProductCard({ product }: { product: Product }) {
   return (
@@ -131,7 +127,6 @@ function ConsumableCard({ consumable }: { consumable: Consumable }) {
           </div>
         </div>
 
-        {/* Stock Status */}
         <div className="pt-3 border-t border-white/5">
           {consumable.stock > 0 ? (
             <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
@@ -150,8 +145,6 @@ function ConsumableCard({ consumable }: { consumable: Consumable }) {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────
-
 export default async function HomePage() {
   const [products, consumables] = await Promise.all([
     getRecentProducts(),
@@ -160,17 +153,13 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 pt-16 text-white pb-12 overflow-hidden">
-
-      {/* Hero Section */}
       <section className="relative pt-32 md:pt-40 pb-16 px-6 overflow-hidden min-h-[70vh] flex flex-col justify-center">
         
-        {/* Background Effects */}
         <div className="absolute inset-0 bg-[radial-gradient(at_center,#27272a_0%,transparent_70%)]" />
         <div className="absolute inset-0 bg-grid-white/5 bg-[length:40px_40px]" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-violet-600/20 blur-[140px] rounded-full" />
         <div className="absolute bottom-10 right-10 w-[500px] h-[400px] bg-cyan-500/10 blur-[120px] rounded-full" />
 
-        {/* گوشه بالا راست */}
         <div className="absolute top-8 right-8 w-32 h-32 md:w-44 md:h-44 hidden lg:block">
           <Image
             src="/images/luffy.png"
@@ -180,7 +169,6 @@ export default async function HomePage() {
           />
         </div>
 
-        {/* گوشه بالا چپ */}
         <div className="absolute top-8 left-8 w-32 h-32 md:w-44 md:h-44 hidden lg:block">
           <Image
             src="images/pink-panter.png"
@@ -190,7 +178,6 @@ export default async function HomePage() {
           />
         </div>
 
-        {/* گوشه پایین راست */}
         <div className="absolute bottom-8 right-8 w-32 h-32 md:w-44 md:h-44 hidden lg:block">
           <Image
             src="images/jujutsu.png"
@@ -200,7 +187,6 @@ export default async function HomePage() {
           />
         </div>
 
-        {/* گوشه پایین چپ */}
         <div className="absolute bottom-8 left-8 w-32 h-32 md:w-44 md:h-44 hidden lg:block">
           <Image
             src="images/Jin_Kazama.png"
@@ -210,7 +196,6 @@ export default async function HomePage() {
           />
         </div>
 
-        {/* Content */}
         <div className="container mx-auto max-w-3xl text-center relative z-30">
           <div className="inline-flex items-center gap-2.5 px-6 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl mb-8">
             <Sparkles className="text-violet-400" size={20} />
@@ -249,7 +234,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Products Section */}
       <Slider
         subtitle="جدیدترین محصولات و فیگورها"
         href="/products"
@@ -263,7 +247,6 @@ export default async function HomePage() {
         ))}
       </Slider>
 
-      {/* Consumables Section */}
       <Slider
         subtitle="فیلامنت و رزین‌های حرفه‌ای"
         href="/consumables"

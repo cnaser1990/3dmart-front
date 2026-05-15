@@ -52,6 +52,7 @@ export default function AddToCartSection({ product }: { product: Product }) {
         preparationTimeDays: product.preparation_time_days,
         weightGrams: weightInGrams,
         brand: product.brand,
+        isConsumable: false,
       },
       quantity
     );

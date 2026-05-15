@@ -67,6 +67,7 @@ export default function AddToCartConsumable({
         preparationTimeDays: 0,
         weightGrams: weightInGrams,
         brand,
+        isConsumable: true,
       },
       quantity
     );

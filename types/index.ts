@@ -91,6 +91,7 @@ export interface CartItem {
   preparationTimeDays: number;
   weightGrams: number;
   brand?: string;
+  isConsumable: boolean;
 }
 
 // ─── Order ───────────────────────────────────────────
