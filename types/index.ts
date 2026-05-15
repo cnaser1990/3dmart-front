@@ -1,26 +1,28 @@
+// types/index.ts
+
 // ─── Product ─────────────────────────────────────────
 
 export interface ProductImage {
-  id: number
-  image: string
-  alt_text: string
-  is_primary: boolean
-  order: number
+  id: number;
+  image: string;
+  alt_text: string;
+  is_primary: boolean;
+  order: number;
 }
 
 export interface Category {
-  id: number
-  name: string
-  slug: string
-  category_type: string
-  image?: string
-  is_active: boolean
+  id: number;
+  name: string;
+  slug: string;
+  category_type: string;
+  image?: string;
+  is_active: boolean;
 }
 
 export interface Tag {
-  id: number
-  name: string
-  slug: string
+  id: number;
+  name: string;
+  slug: string;
 }
 
 export interface Product {
@@ -35,22 +37,22 @@ export interface Product {
   discount_percent: number;
   final_price: number;
   stock: number;
-  preparation_time_days: number;  // ✅
+  preparation_time_days: number;
   is_active: boolean;
   is_available: boolean;
   is_featured: boolean;
-  availability_text: string;  // ✅
+  availability_text: string;
   primary_image?: string;
   images?: ProductImage[];
   category?: Category;
   tags?: Tag[];
   print_time_hours?: number;
   weight_grams?: number;
+  brand?: string;
   created_at: string;
 }
 
 // ─── Consumable ──────────────────────────────────────
-
 
 export type PriceHistory = {
   price: number;
@@ -73,152 +75,157 @@ export type Consumable = {
   stock: number;
   last_crawled_at: string | null;
   price_history?: PriceHistory[];
+};
+
+// ─── Cart ─────────────────────────────────────────────
+
+export interface CartItem {
+  productId: number;
+  name: string;
+  slug: string;
+  price: number;
+  finalPrice: number;
+  image?: string;
+  quantity: number;
+  stock: number;
+  preparationTimeDays: number;
+  weightGrams: number;
+  brand?: string;
 }
+
 // ─── Order ───────────────────────────────────────────
 
 export interface OrderItem {
-  id: number
-  product?: Product
-  consumable?: Consumable
-  quantity: number
-  unit_price: number
-  subtotal: number
+  id: number;
+  product?: Product;
+  consumable?: Consumable;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
 }
 
 export interface Order {
-  id: number
-  user?: number
-  status: string
-  status_display?: string
-  full_name: string
-  phone: string
-  province: string
-  city: string
-  address: string
-  postal_code: string
-  total_price: number
-  shipping_fee: number
-  discount_amount: number
-  final_amount: number
-  tracking_code?: string
-  notes?: string
-  items: OrderItem[]
-  created_at: string
-  updated_at: string
+  id: number;
+  user?: number;
+  status: string;
+  status_display?: string;
+  full_name: string;
+  phone: string;
+  province: string;
+  city: string;
+  address: string;
+  postal_code: string;
+  total_price: number;
+  shipping_fee: number;
+  discount_amount: number;
+  final_amount: number;
+  tracking_code?: string;
+  notes?: string;
+  items: OrderItem[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OrderCreateItem {
-  product_id?: number
-  consumable_id?: number
-  quantity: number
+  product_id?: number;
+  consumable_id?: number;
+  quantity: number;
 }
 
 export interface OrderCreate {
-  full_name: string
-  phone: string
-  province: string
-  city: string
-  address: string
-  postal_code: string
-  notes?: string
-  items: OrderCreateItem[]
+  full_name: string;
+  phone: string;
+  province: string;
+  city: string;
+  address: string;
+  postal_code: string;
+  notes?: string;
+  items: OrderCreateItem[];
 }
 
 export interface OrderCreateResponse {
-  message: string
-  order_id: number
-  final_amount: number
-  shipping_fee: number
+  message: string;
+  order_id: number;
+  final_amount: number;
+  shipping_fee: number;
 }
 
 // ─── Payment ─────────────────────────────────────────
 
 export interface Payment {
-  id: number
-  user_phone: string
-  order_id: number
-  gateway: string
-  gateway_display: string
-  amount: number
-  status: string
-  status_display: string
-  authority?: string
-  ref_id?: string
-  card_pan?: string
-  description?: string
-  created_at: string
-  paid_at?: string
+  id: number;
+  user_phone: string;
+  order_id: number;
+  gateway: string;
+  gateway_display: string;
+  amount: number;
+  status: string;
+  status_display: string;
+  authority?: string;
+  ref_id?: string;
+  card_pan?: string;
+  description?: string;
+  created_at: string;
+  paid_at?: string;
 }
 
 export interface PaymentRequestResponse {
-  message: string
-  payment_id: number
-  payment_url: string
-  authority: string
+  message: string;
+  payment_id: number;
+  payment_url: string;
+  authority: string;
 }
 
 // ─── User ────────────────────────────────────────────
 
 export interface User {
-  id: number
-  phone: string
-  email?: string
-  first_name?: string
-  last_name?: string
-  gender?: string
-  birth_date?: string
-  avatar?: string
-  avatar_url?: string
-  bio?: string
-  national_code?: string
-  is_verified: boolean
-  phone_verified: boolean
-  email_verified: boolean
-  date_joined: string
+  id: number;
+  phone: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  gender?: string;
+  birth_date?: string;
+  avatar?: string;
+  avatar_url?: string;
+  bio?: string;
+  national_code?: string;
+  is_verified: boolean;
+  phone_verified: boolean;
+  email_verified: boolean;
+  date_joined: string;
 }
 
 export interface AuthTokens {
-  access: string
-  refresh: string
+  access: string;
+  refresh: string;
 }
 
 export interface LoginResponse {
-  message: string
-  tokens: AuthTokens
-  user: User
+  message: string;
+  tokens: AuthTokens;
+  user: User;
 }
 
 export interface RegisterResponse {
-  message: string
-  phone: string
+  message: string;
+  phone: string;
 }
 
 export interface MessageResponse {
-  message: string
+  message: string;
 }
 
 export interface ProfileUpdateResponse {
-  message: string
-  user: User
+  message: string;
+  user: User;
 }
 
 // ─── API ─────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {
-  count: number
-  next?: string
-  previous?: string
-  results: T[]
-}
-
-// ─── Cart ─────────────────────────────────────────────
-
-export interface CartItem {
-  id: number
-  type: 'product' | 'consumable'
-  name: string
-  price: number
-  image?: string
-  quantity: number
-  unitPrice: number
+  count: number;
+  next?: string;
+  previous?: string;
+  results: T[];
 }

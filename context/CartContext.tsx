@@ -9,18 +9,7 @@ import {
   useSyncExternalStore,
   ReactNode,
 } from 'react';
-
-type CartItem = {
-  productId: number;
-  name: string;
-  slug: string;
-  price: number;
-  finalPrice: number;
-  image?: string;
-  quantity: number;
-  stock: number;
-  preparationTimeDays: number;
-};
+import type { CartItem } from '@/types';
 
 type CartContextType = {
   items: CartItem[];
@@ -28,6 +17,7 @@ type CartContextType = {
   isInCart: (productId: number) => boolean;
   getQuantity: (productId: number) => number;
   getTotalItems: () => number;
+  getTotalWeightGrams: () => number;
   removeItem: (productId: number) => void;
   clearCart: () => void;
 };
@@ -38,7 +28,6 @@ const CART_KEY = 'cart';
 const CART_CHANGE_EVENT = 'cart-change';
 const EMPTY_CART: CartItem[] = [];
 
-// Cached snapshot so React does not see a "new" value on every call.
 let cachedCartRaw: string | null = null;
 let cachedCartValue: CartItem[] = EMPTY_CART;
 
@@ -153,6 +142,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items]
   );
 
+  const getTotalWeightGrams = useCallback(
+    () => items.reduce((total, item) => total + (item.weightGrams || 0) * item.quantity, 0),
+    [items]
+  );
+
   const value = useMemo(
     () => ({
       items,
@@ -160,10 +154,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       isInCart,
       getQuantity,
       getTotalItems,
+      getTotalWeightGrams,
       removeItem,
       clearCart,
     }),
-    [items, addItem, isInCart, getQuantity, getTotalItems, removeItem, clearCart]
+    [items, addItem, isInCart, getQuantity, getTotalItems, getTotalWeightGrams, removeItem, clearCart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

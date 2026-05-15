@@ -72,8 +72,6 @@ export default async function ConsumableDetailPage({
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-20">
-
-      {/* Breadcrumb */}
       <div className="border-b border-white/5">
         <div className="container mx-auto px-4 sm:px-6 py-4 max-w-7xl">
           <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-400 overflow-x-auto scrollbar-hide">
@@ -102,8 +100,6 @@ export default async function ConsumableDetailPage({
 
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12 lg:mb-20">
-
-          {/* ── Image ── */}
           <div className="lg:sticky lg:top-24 lg:self-start">
             <div className="aspect-square bg-zinc-900/50 border border-white/10 rounded-3xl overflow-hidden relative">
               {consumable.image ? (
@@ -132,7 +128,6 @@ export default async function ConsumableDetailPage({
               )}
             </div>
 
-            {/* Price history chart */}
             {prices.length > 1 && minPrice !== null && maxPrice !== null && (
               <div className="mt-4 bg-zinc-900/50 border border-white/10 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -164,10 +159,7 @@ export default async function ConsumableDetailPage({
             )}
           </div>
 
-          {/* ── Info ── */}
           <div>
-
-            {/* Badges */}
             <div className="flex items-center gap-2 mb-4 flex-wrap">
               <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-full border border-white/10">
                 {consumable.brand}
@@ -190,12 +182,10 @@ export default async function ConsumableDetailPage({
                 )}
             </div>
 
-            {/* Title */}
             <h1 className="text-3xl sm:text-4xl font-black mb-6 leading-tight">
               {consumable.name}
             </h1>
 
-            {/* Price Box */}
             <div className="bg-zinc-900/50 border border-white/10 rounded-3xl p-4 sm:p-6 mb-6">
               {consumable.selling_price ? (
                 <>
@@ -220,7 +210,6 @@ export default async function ConsumableDetailPage({
               )}
             </div>
 
-            {/* Specs */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
               <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-3 sm:p-4">
                 <div className="text-zinc-500 text-xs mb-1">برند</div>
@@ -260,7 +249,6 @@ export default async function ConsumableDetailPage({
               )}
             </div>
 
-            {/* Add to Cart - Client Component */}
             {consumable.selling_price ? (
               <AddToCartConsumable
                 consumableId={consumable.id}
@@ -269,6 +257,8 @@ export default async function ConsumableDetailPage({
                 sellingPrice={consumable.selling_price}
                 image={consumable.image}
                 stock={consumable.stock}
+                weightKg={consumable.weight_kg}
+                brand={consumable.brand}
               />
             ) : (
               <div className="mb-6 sm:mb-8">
@@ -278,7 +268,6 @@ export default async function ConsumableDetailPage({
               </div>
             )}
 
-            {/* Features */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 sm:p-6 bg-gradient-to-br from-violet-500/10 to-cyan-500/10 border border-white/10 rounded-3xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -311,7 +300,6 @@ export default async function ConsumableDetailPage({
           </div>
         </div>
 
-        {/* Description */}
         {consumable.description && (
           <div className="mb-12 lg:mb-20">
             <h2 className="text-2xl sm:text-3xl font-black mb-6">توضیحات</h2>
@@ -323,7 +311,6 @@ export default async function ConsumableDetailPage({
           </div>
         )}
 
-        {/* Related */}
         {related.length > 0 && (
           <div>
             <h2 className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8">محصولات مشابه</h2>

@@ -36,6 +36,10 @@ export default function AddToCartSection({ product }: { product: Product }) {
   };
 
   const handleAddToCart = () => {
+    const weightInGrams = product.weight_grams && product.weight_grams > 0 
+      ? Math.round(product.weight_grams) 
+      : 0;
+
     addItem(
       {
         productId: product.id,
@@ -46,6 +50,8 @@ export default function AddToCartSection({ product }: { product: Product }) {
         image: product.primary_image,
         stock: product.stock,
         preparationTimeDays: product.preparation_time_days,
+        weightGrams: weightInGrams,
+        brand: product.brand,
       },
       quantity
     );

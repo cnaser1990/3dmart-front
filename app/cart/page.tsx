@@ -1,10 +1,8 @@
-// app/cart/page.tsx
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import {
   ArrowLeft,
   ShoppingCart,
@@ -14,14 +12,19 @@ import {
   Cuboid,
   Truck,
   ShieldCheck,
+  Weight,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 const CART_KEY = 'cart';
 const CART_CHANGE_EVENT = 'cart-change';
 
+const SHIPPING_THRESHOLD_GRAMS = 500;
+const SHIPPING_LIGHT = 100_000;
+const SHIPPING_HEAVY = 150_000;
+
 const getImageUrl = (path: string | null | undefined) => {
-  if (!path) return '';
+  if (!path) return '/placeholder.jpg';
   if (path.startsWith('http')) return path;
   return `http://localhost:8000${path}`;
 };
@@ -30,41 +33,100 @@ function formatPrice(value: number) {
   return value.toLocaleString('fa-IR');
 }
 
+interface StoredCartItem {
+  productId: number;
+  quantity: number;
+  stock?: number;
+  [key: string]: unknown;
+}
+
 function updateCartItemQuantity(productId: number, delta: number) {
   if (typeof window === 'undefined') return;
 
   try {
     const raw = localStorage.getItem(CART_KEY);
-    const items = raw ? JSON.parse(raw) : [];
+    let items: StoredCartItem[] = raw ? (JSON.parse(raw) as StoredCartItem[]) : [];
 
-    if (!Array.isArray(items)) return;
+    if (!Array.isArray(items)) items = [];
 
     const nextItems = items
-      .map((item) => {
+      .map((item: StoredCartItem) => {
         if (item.productId !== productId) return item;
-        const nextQty = (item.quantity || 0) + delta;
+
+        const currentQty = item.quantity || 0;
+        const stock = item.stock ?? 9999;
+        const nextQty = currentQty + delta;
+
+        if (delta > 0 && stock > 0 && nextQty > stock) {
+          return item;
+        }
+
         return { ...item, quantity: nextQty };
       })
-      .filter((item) => item.quantity > 0);
+      .filter((item: StoredCartItem) => item.quantity > 0);
 
     localStorage.setItem(CART_KEY, JSON.stringify(nextItems));
     window.dispatchEvent(new Event(CART_CHANGE_EVENT));
-  } catch {
-    // ignore invalid storage
+  } catch (e) {
+    console.error('Cart update error:', e);
   }
 }
 
+function useHydrated() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+}
+
 export default function CartPage() {
-  const { items, removeItem, clearCart, getTotalItems } = useCart();
+  const { items, removeItem, clearCart, getTotalItems, getTotalWeightGrams } = useCart();
+  const isHydrated = useHydrated();
 
   const totalItems = getTotalItems();
+  const totalWeightGrams = getTotalWeightGrams();
 
   const subtotal = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.finalPrice * item.quantity, 0);
+    return items.reduce((sum, item) => sum + (item.finalPrice || item.price || 0) * item.quantity, 0);
   }, [items]);
 
-  const shippingCost = 0;
+  const shippingCost = useMemo(() => {
+    if (items.length === 0) return 0;
+    return totalWeightGrams < SHIPPING_THRESHOLD_GRAMS ? SHIPPING_LIGHT : SHIPPING_HEAVY;
+  }, [items.length, totalWeightGrams]);
+
   const totalPrice = subtotal + shippingCost;
+
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white pt-20">
+        <div className="border-b border-white/5">
+          <div className="container mx-auto px-4 sm:px-6 py-4 max-w-7xl">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-400">
+              <Link href="/" className="hover:text-white transition-colors whitespace-nowrap">
+                خانه
+              </Link>
+              <span>/</span>
+              <span className="text-white whitespace-nowrap">سبد خرید</span>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight">
+                سبد خرید
+              </h1>
+              <p className="text-zinc-400 text-sm sm:text-base mt-2">
+                در حال بارگذاری...
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-20">
@@ -86,7 +148,7 @@ export default function CartPage() {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight">
               سبد خرید
             </h1>
-            <p className="text-zinc-400 text-sm sm:text-base mt-2">
+            <p className="text-zinc-400 text-sm sm:text-base mt-2" suppressHydrationWarning>
               {totalItems > 0
                 ? `${totalItems} عدد محصول داخل سبد شماست`
                 : 'سبد شما در حال حاضر خالی است'}
@@ -138,7 +200,9 @@ export default function CartPage() {
               </div>
 
               {items.map((item) => {
-                const itemTotal = item.finalPrice * item.quantity;
+                const itemTotal = (item.finalPrice || item.price || 0) * item.quantity;
+                const stock = item.stock ?? 9999;
+                const canIncrease = item.quantity < stock;
 
                 return (
                   <div
@@ -173,8 +237,9 @@ export default function CartPage() {
                             >
                               {item.name}
                             </Link>
-
-                            
+                            {item.brand && (
+                              <p className="text-xs text-zinc-500 mt-0.5">{item.brand}</p>
+                            )}
                           </div>
 
                           <button
@@ -204,7 +269,8 @@ export default function CartPage() {
                             <button
                               type="button"
                               onClick={() => updateCartItemQuantity(item.productId, 1)}
-                              className="w-11 h-11 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/5 transition-colors rounded-l-2xl"
+                              disabled={!canIncrease}
+                              className="w-11 h-11 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/5 transition-colors rounded-l-2xl disabled:opacity-40"
                             >
                               <Plus size={18} />
                             </button>
@@ -215,10 +281,20 @@ export default function CartPage() {
                               قیمت واحد
                             </div>
                             <div className="font-black text-white text-lg">
-                              {formatPrice(item.finalPrice)} تومان
+                              {formatPrice(item.finalPrice || item.price || 0)} تومان
                             </div>
                             <div className="text-zinc-500 text-xs mt-1">
                               مجموع آیتم: {formatPrice(itemTotal)} تومان
+                            </div>
+                            {item.stock && item.stock < 9999 && (
+                              <div className="text-[10px] text-emerald-400 mt-2">
+                                موجودی: {item.stock} عدد
+                              </div>
+                            )}
+                            <div className="text-[10px] text-cyan-400 mt-1">
+                              وزن واحد: {item.weightGrams >= 1000 
+                                ? `${(item.weightGrams / 1000).toFixed(1)} کیلو`
+                                : `${item.weightGrams} گرم`}
                             </div>
                           </div>
                         </div>
@@ -236,24 +312,34 @@ export default function CartPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm sm:text-base">
                     <span className="text-zinc-400">تعداد کالا</span>
-                    <span className="font-bold">{totalItems} عدد</span>
+                    <span className="font-bold" suppressHydrationWarning>{totalItems} عدد</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm sm:text-base">
                     <span className="text-zinc-400">جمع جزء</span>
-                    <span className="font-bold">{formatPrice(subtotal)} تومان</span>
+                    <span className="font-bold" suppressHydrationWarning>{formatPrice(subtotal)} تومان</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm sm:text-base">
                     <span className="text-zinc-400">هزینه ارسال</span>
-                    <span className="font-bold">
-                      {shippingCost === 0 ? 'وابسته به سفارش' : `${formatPrice(shippingCost)} تومان`}
+                    <span className="font-bold" suppressHydrationWarning>{formatPrice(shippingCost)} تومان</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-zinc-500">
+                    <div className="flex items-center gap-1">
+                      <Weight size={12} />
+                      <span>وزن کل سفارش</span>
+                    </div>
+                    <span suppressHydrationWarning>
+                      {totalWeightGrams >= 1000
+                        ? `${(totalWeightGrams / 1000).toFixed(2)} کیلوگرم`
+                        : `${totalWeightGrams} گرم`}
                     </span>
                   </div>
 
                   <div className="pt-4 border-t border-white/10 flex items-center justify-between">
                     <span className="text-base sm:text-lg font-black">مبلغ نهایی</span>
-                    <span className="text-xl sm:text-2xl font-black text-white">
+                    <span className="text-xl sm:text-2xl font-black text-white" suppressHydrationWarning>
                       {formatPrice(totalPrice)} تومان
                     </span>
                   </div>
@@ -265,9 +351,11 @@ export default function CartPage() {
                       <Truck size={18} className="text-violet-300" />
                     </div>
                     <div>
-                      <div className="font-bold text-sm">ارسال و آماده‌سازی</div>
-                      <div className="text-[11px] text-zinc-400">
-                        بر اساس نوع محصول و زمان ساخت
+                      <div className="font-bold text-sm">هزینه ارسال</div>
+                      <div className="text-[11px] text-zinc-400" suppressHydrationWarning>
+                        {totalWeightGrams < SHIPPING_THRESHOLD_GRAMS 
+                          ? `زیر ${SHIPPING_THRESHOLD_GRAMS}گرم: ${formatPrice(SHIPPING_LIGHT)} تومان`
+                          : `بالای ${SHIPPING_THRESHOLD_GRAMS}گرم: ${formatPrice(SHIPPING_HEAVY)} تومان`}
                       </div>
                     </div>
                   </div>
@@ -287,7 +375,7 @@ export default function CartPage() {
 
                 <div className="mt-6 flex flex-col gap-3">
                   <Link
-                    href="/contact-us"
+                    href="/checkout"
                     className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 transition-all font-bold shadow-lg shadow-violet-500/25"
                   >
                     ثبت سفارش

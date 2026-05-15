@@ -21,6 +21,8 @@ type Props = {
   sellingPrice: number;
   image?: string;
   stock: number;
+  weightKg?: string | number;
+  brand?: string;
 };
 
 export default function AddToCartConsumable({
@@ -30,6 +32,8 @@ export default function AddToCartConsumable({
   sellingPrice,
   image,
   stock,
+  weightKg = 1,
+  brand,
 }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
@@ -40,15 +44,16 @@ export default function AddToCartConsumable({
   const alreadyInCart = hydrated ? isInCart(consumableId) : false;
   const cartQty = hydrated ? getQuantity(consumableId) : 0;
 
-  // محاسبه موجودی باقی‌مانده = موجودی کل - تعداد موجود در سبد
   const remainingStock = stock > 0 ? Math.max(0, stock - cartQty) : 99;
   const maxAllowed = remainingStock;
 
   const handleAddToCart = () => {
-    // اگه موجودی باقی نمونده باشه، اجازه اضافه کردن نده
     if (stock > 0 && cartQty >= stock) {
       return;
     }
+
+    const weightInKg = typeof weightKg === 'string' ? parseFloat(weightKg) || 1 : weightKg;
+    const weightInGrams = Math.round(weightInKg * 1000);
 
     addItem(
       {
@@ -60,6 +65,8 @@ export default function AddToCartConsumable({
         image,
         stock,
         preparationTimeDays: 0,
+        weightGrams: weightInGrams,
+        brand,
       },
       quantity
     );
@@ -69,8 +76,6 @@ export default function AddToCartConsumable({
 
   return (
     <div className="mb-6 sm:mb-8">
-
-      {/* Already in cart notice */}
       {hydrated && alreadyInCart && (
         <div className="flex items-center justify-between mb-3 px-4 py-2.5 bg-violet-500/10 border border-violet-500/20 rounded-2xl">
           <span className="text-violet-300 text-xs sm:text-sm font-bold">
@@ -85,7 +90,6 @@ export default function AddToCartConsumable({
         </div>
       )}
 
-      {/* محدودیت موجودی */}
       {stock > 0 && (
         <div className="mb-3 px-3 py-2 bg-amber-500/5 border border-amber-500/20 rounded-xl">
           <p className="text-amber-400/90 text-[10px] sm:text-xs text-center font-bold">
@@ -99,8 +103,6 @@ export default function AddToCartConsumable({
       )}
 
       <div className="flex gap-3 sm:gap-4 mb-4">
-
-        {/* Quantity Selector */}
         <div className="flex items-center bg-zinc-900/50 border border-white/10 rounded-2xl select-none">
           <button
             type="button"
@@ -125,7 +127,6 @@ export default function AddToCartConsumable({
           </button>
         </div>
 
-        {/* Add to Cart Button */}
         {stock === 0 ? (
           <div className="flex-1 bg-zinc-800 text-zinc-500 py-3 sm:py-4 rounded-2xl font-bold flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base cursor-not-allowed">
             <ShoppingCart size={20} />
@@ -154,7 +155,6 @@ export default function AddToCartConsumable({
         )}
       </div>
 
-      {/* Stock info */}
       {stock > 0 ? (
         <p className="text-[10px] sm:text-xs text-emerald-400/80 text-center font-bold">
           ✓ موجود در انبار — {stock} عدد (باقی‌مانده: {remainingStock})
