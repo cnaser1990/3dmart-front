@@ -51,28 +51,29 @@ export interface Product {
 
 // ─── Consumable ──────────────────────────────────────
 
-export interface Consumable {
-  id: number
-  name: string
-  slug: string
-  brand: string
-  consumable_type: string
-  filament_type?: string
-  color?: string
-  color_hex?: string
-  weight_kg: number
-  description?: string
-  image?: string
-  source_url?: string
-  source_price?: number
-  selling_price?: number
-  stock: number
-  is_active: boolean
-  last_crawled_at?: string
-  created_at: string
-  updated_at: string
-}
 
+export type PriceHistory = {
+  price: number;
+  recorded_at: string;
+};
+
+export type Consumable = {
+  id: number;
+  name: string;
+  slug: string;
+  brand: string;
+  color: string;
+  color_hex: string;
+  consumable_type: 'filament' | 'resin';
+  filament_type: 'pla' | 'abs' | 'petg' | 'tpu' | 'asa' | 'none';
+  weight_kg: string;
+  description?: string;
+  image?: string;
+  selling_price: number | null;
+  stock: number;
+  last_crawled_at: string | null;
+  price_history?: PriceHistory[];
+}
 // ─── Order ───────────────────────────────────────────
 
 export interface OrderItem {

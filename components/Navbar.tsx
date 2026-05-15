@@ -58,7 +58,7 @@ export default function Navbar() {
           </Link>
 
           {/* Profile */}
-          <Link href="/auth/login" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+          <Link href="/auth" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <User size={20} className="text-zinc-300" />
           </Link>
 
