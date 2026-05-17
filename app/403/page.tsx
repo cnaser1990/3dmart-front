@@ -1,7 +1,7 @@
 // app/403/page.tsx
 
 import Link from 'next/link';
-import { ShieldAlert, ArrowLeft, Home } from 'lucide-react';
+import { ShieldAlert, Home } from 'lucide-react';
 
 export const metadata = {
   title: '403 | دسترسی غیرمجاز',
@@ -37,15 +37,6 @@ export default function ForbiddenPage() {
               <Home size={18} />
               بازگشت به خانه
             </Link>
-
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors font-bold w-full sm:w-auto"
-            >
-              <ArrowLeft size={18} />
-              بازگشت
-            </button>
           </div>
         </div>
       </div>

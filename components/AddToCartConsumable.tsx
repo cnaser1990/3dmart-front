@@ -57,6 +57,7 @@ export default function AddToCartConsumable({
 
     addItem(
       {
+        id: consumableId,
         productId: consumableId,
         slug,
         name,
@@ -68,6 +69,7 @@ export default function AddToCartConsumable({
         weightGrams: weightInGrams,
         brand,
         isConsumable: true,
+        type: 'consumable',
       },
       quantity
     );

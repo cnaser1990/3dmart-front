@@ -14,12 +14,25 @@ export default function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem)
 
   const handleAddToCart = () => {
+    const weightInGrams = product.weight_grams && product.weight_grams > 0 
+      ? Math.round(product.weight_grams) 
+      : 0;
+
     addItem({
       id: product.id,
-      type: 'product',
+      productId: product.id,
+      slug: product.slug,
       name: product.name,
-      price: product.final_price,
+      price: product.price,
+      finalPrice: product.final_price,
       image: product.primary_image,
+      quantity: 1,
+      stock: product.stock,
+      preparationTimeDays: product.preparation_time_days,
+      weightGrams: weightInGrams,
+      brand: product.brand,
+      isConsumable: false,
+      type: 'product',
     })
     alert('✅ به سبد خرید اضافه شد')
   }

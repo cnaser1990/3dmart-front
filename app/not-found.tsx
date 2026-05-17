@@ -1,13 +1,6 @@
 // app/not-found.tsx
-'use client';
-
 import Link from 'next/link';
-import { SearchX, ArrowLeft, Home, ShoppingCart } from 'lucide-react';
-
-export const metadata = {
-  title: '404 | صفحه پیدا نشد',
-  description: 'صفحه‌ای که به دنبال آن هستید پیدا نشد.',
-};
+import { SearchX, Home, ShoppingCart } from 'lucide-react';
 
 export default function NotFoundPage() {
   return (
@@ -47,15 +40,6 @@ export default function NotFoundPage() {
               مشاهده محصولات
             </Link>
           </div>
-
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="mt-3 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-zinc-900/70 hover:bg-zinc-900 border border-white/10 transition-colors font-bold w-full"
-          >
-            <ArrowLeft size={18} />
-            بازگشت به صفحه قبل
-          </button>
         </div>
       </div>
     </div>
