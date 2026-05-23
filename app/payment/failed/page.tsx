@@ -1,84 +1,119 @@
-'use client'
+// app/payment/failed/page.tsx - آپدیت شده
+'use client';
 
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { Suspense } from 'react';
+import { XCircle, ArrowLeft, ShoppingCart, Home } from 'lucide-react';
 
 function PaymentFailedContent() {
-  const searchParams = useSearchParams()
-  const orderId = searchParams.get('order_id')
-  const error = searchParams.get('error')
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get('order_id');
+  const error = searchParams.get('error');
+
+  const getErrorMessage = (errorCode: string | null) => {
+    const errors: Record<string, string> = {
+      cancelled: 'پرداخت توسط کاربر لغو شد',
+      'authority-missing': 'اطلاعات پرداخت یافت نشد',
+      'transaction-not-found': 'تراکنش یافت نشد',
+    };
+
+    return errors[errorCode || ''] || errorCode || 'خطای نامشخص در پرداخت';
+  };
 
   return (
-    <div className="container mx-auto px-4 py-16">
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
-        {/* آیکون خطا */}
-        <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <div className="text-5xl text-red-500">✕</div>
-        </div>
+    <div className="min-h-screen bg-zinc-950 text-white pt-20">
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-2xl mx-auto">
+          {/* Error Icon */}
+          <div className="bg-gradient-to-br from-red-500/20 to-rose-500/20 border border-red-500/30 rounded-3xl p-8 text-center mb-6">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-red-500/20 flex items-center justify-center">
+              <XCircle size={48} className="text-red-400" />
+            </div>
 
-        <h1 className="text-3xl font-bold text-red-600 mb-4">پرداخت ناموفق</h1>
-        <p className="text-gray-600 mb-8">متأسفانه پرداخت شما انجام نشد</p>
-
-        {/* دلیل خطا */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mb-8">
-            <p className="font-medium">دلیل خطا:</p>
-            <p className="text-sm mt-2">{error}</p>
+            <h1 className="text-3xl sm:text-4xl font-black mb-3 text-red-400">
+              پرداخت ناموفق
+            </h1>
+            <p className="text-zinc-400 text-lg">متأسفانه پرداخت شما انجام نشد</p>
           </div>
-        )}
 
-        {/* راهنمایی */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8 text-right">
-          <p className="font-medium text-yellow-800 mb-2">چه اتفاقی افتاد؟</p>
-          <ul className="text-sm text-yellow-700 space-y-1">
-            <li>• ممکن است پرداخت را لغو کرده باشید</li>
-            <li>• موجودی کافی نبوده است</li>
-            <li>• مشکلی در درگاه پرداخت رخ داده</li>
-          </ul>
-        </div>
-
-        {/* اطلاعات سفارش */}
-        {orderId && (
-          <div className="mb-8">
-            <p className="text-gray-600">
-              سفارش شما با شماره <span className="font-bold">#{orderId}</span> ثبت شده اما پرداخت
-              نشده است
-            </p>
-          </div>
-        )}
-
-        {/* دکمه‌ها */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          {orderId && (
-            <Link
-              href={`/profile/orders`}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700"
-            >
-              مشاهده سفارش و تلاش مجدد
-            </Link>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5 mb-6">
+              <p className="font-bold text-red-300 mb-2">دلیل خطا:</p>
+              <p className="text-red-200">{getErrorMessage(error)}</p>
+            </div>
           )}
-          <Link
-            href="/cart"
-            className="border border-gray-300 px-8 py-3 rounded-lg hover:bg-gray-50"
-          >
-            بازگشت به سبد خرید
-          </Link>
-        </div>
 
-        {/* پشتیبانی */}
-        <div className="mt-8 text-sm text-gray-500">
-          در صورت کسر وجه از حساب، تا ۷۲ ساعت آینده به حساب شما برمی‌گردد
+          {/* Info Box */}
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-5 mb-6">
+            <p className="font-bold text-yellow-300 mb-3">چه اتفاقی افتاد؟</p>
+            <ul className="text-sm text-yellow-200 space-y-2">
+              <li>• ممکن است پرداخت را لغو کرده باشید</li>
+              <li>• موجودی کافی در حساب نبوده است</li>
+              <li>• مشکلی در درگاه پرداخت رخ داده</li>
+              <li>• اطلاعات کارت اشتباه وارد شده است</li>
+            </ul>
+          </div>
+
+          {/* Order Info */}
+          {orderId && (
+            <div className="bg-zinc-900/50 border border-white/10 rounded-2xl p-5 mb-6 text-center">
+              <p className="text-zinc-400">
+                سفارش شما با شماره{' '}
+                <span className="font-bold text-white">#{orderId}</span> ثبت شده اما پرداخت
+                نشده است
+              </p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <Link
+              href="/checkout"
+              className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 px-6 py-4 rounded-2xl font-bold transition-all"
+            >
+              <ArrowLeft size={20} />
+              تلاش مجدد
+            </Link>
+
+            <Link
+              href="/cart"
+              className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-4 rounded-2xl font-bold transition-all"
+            >
+              <ShoppingCart size={20} />
+              سبد خرید
+            </Link>
+          </div>
+
+          <Link
+            href="/"
+            className="flex items-center justify-center gap-2 text-zinc-400 hover:text-white transition-colors"
+          >
+            <Home size={18} />
+            بازگشت به صفحه اصلی
+          </Link>
+
+          {/* Support Note */}
+          <div className="mt-8 text-center text-sm text-zinc-500 bg-zinc-900/30 border border-white/5 rounded-2xl p-4">
+            💡 در صورت کسر وجه از حساب، ظرف ۷۲ ساعت به حساب شما برمی‌گردد
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function PaymentFailedPage() {
   return (
-    <Suspense fallback={<div className="container mx-auto px-4 py-16 text-center">درحال بارگذاری...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full" />
+        </div>
+      }
+    >
       <PaymentFailedContent />
     </Suspense>
-  )
+  );
 }

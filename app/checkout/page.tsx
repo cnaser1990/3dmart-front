@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useMemo, useSyncExternalStore } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import {
   ArrowLeft,
   ShoppingCart,
@@ -17,25 +17,36 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useRouter } from 'next/navigation';
 
-const SHIPPING_THRESHOLD_GRAMS = 500;
-const SHIPPING_LIGHT = 100_000;
-const SHIPPING_HEAVY = 150_000;
+const SHIPPING_THRESHOLD_GRAMS = Number(
+  process.env.NEXT_PUBLIC_SHIPPING_THRESHOLD_GRAMS ?? 500
+);
+const SHIPPING_LIGHT = Number(process.env.NEXT_PUBLIC_SHIPPING_LIGHT ?? 100000);
+const SHIPPING_HEAVY = Number(process.env.NEXT_PUBLIC_SHIPPING_HEAVY ?? 150000);
+
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+).replace(/\/$/, '');
+
+const BACKEND_BASE_URL = (
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:8000'
+).replace(/\/$/, '');
 
 const getImageUrl = (path: string | null | undefined) => {
   if (!path) return '/placeholder.jpg';
   if (path.startsWith('http')) return path;
-  return `http://localhost:8000${path}`;
+  return `${BACKEND_BASE_URL}${path}`;
 };
 
 function formatPrice(value: number) {
   return value.toLocaleString('fa-IR');
 }
 
+const emptySubscribe = () => () => {};
+
 function useHydrated() {
   return useSyncExternalStore(
-    () => () => {},
+    emptySubscribe,
     () => true,
     () => false
   );
@@ -51,17 +62,27 @@ interface FormData {
   address: string;
   postalCode: string;
   notes: string;
-  paymentMethod: 'online' | 'pos' | 'cash';
 }
 
 interface FormErrors {
   [key: string]: string;
 }
 
+type CartItem = {
+  productId: number;
+  name: string;
+  quantity: number;
+  price?: number;
+  finalPrice?: number;
+  image?: string | null;
+  isConsumable?: boolean;
+};
+
 export default function CheckoutPage() {
-  const { items, getTotalItems, getTotalWeightGrams, clearCart } = useCart();
-  const isHydrated = useHydrated();
-  const router = useRouter();
+  const { items, getTotalItems, getTotalWeightGrams } = useCart();
+  const hydrated = useHydrated();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -73,34 +94,33 @@ export default function CheckoutPage() {
     address: '',
     postalCode: '',
     notes: '',
-    paymentMethod: 'online',
   });
 
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const cartItems = items as CartItem[];
   const totalItems = getTotalItems();
   const totalWeightGrams = getTotalWeightGrams();
 
-  const subtotal = useMemo(() => {
-    return items.reduce(
+  const subtotalToman = useMemo(() => {
+    return cartItems.reduce(
       (sum, item) => sum + (item.finalPrice || item.price || 0) * item.quantity,
       0
     );
-  }, [items]);
+  }, [cartItems]);
 
-  const shippingCost = useMemo(() => {
-    if (items.length === 0) return 0;
+  const shippingCostToman = useMemo(() => {
+    if (cartItems.length === 0) return 0;
     return totalWeightGrams < SHIPPING_THRESHOLD_GRAMS ? SHIPPING_LIGHT : SHIPPING_HEAVY;
-  }, [items.length, totalWeightGrams]);
+  }, [cartItems.length, totalWeightGrams]);
 
-  const totalPrice = subtotal + shippingCost;
+  const totalPriceToman = subtotalToman + shippingCostToman;
+  const totalPriceRial = totalPriceToman * 10;
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -111,7 +131,6 @@ export default function CheckoutPage() {
 
     if (!formData.firstName.trim()) newErrors.firstName = 'نام الزامی است';
     if (!formData.lastName.trim()) newErrors.lastName = 'نام خانوادگی الزامی است';
-
 
     if (!formData.phone.trim()) {
       newErrors.phone = 'شماره تماس الزامی است';
@@ -129,73 +148,121 @@ export default function CheckoutPage() {
       newErrors.postalCode = 'کد پستی باید ۱۰ رقم باشد';
     }
 
+    if (cartItems.length === 0) {
+      newErrors.cart = 'سبد خرید خالی است';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const readResponseBody = async (response: Response) => {
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { detail: text };
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
 
     try {
-      const orderData = {
-        customer: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-        },
-        shipping: {
-          province: formData.province,
-          city: formData.city,
-          address: formData.address,
-          postalCode: formData.postalCode,
-        },
-        items: items.map((item) => ({
-          productId: item.productId,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.finalPrice || item.price,
-          isConsumable: item.isConsumable,
-        })),
-        subtotal,
-        shippingCost,
-        totalPrice,
-        totalWeight: totalWeightGrams,
-        paymentMethod: formData.paymentMethod,
-        notes: formData.notes,
+      const orderPayload = {
+        full_name: `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim(),
+        phone: formData.phone.trim().replace(/\s/g, ''),
+        province: formData.province.trim(),
+        city: formData.city.trim(),
+        address: formData.address.trim(),
+        postal_code: formData.postalCode.trim().replace(/\s/g, ''),
+        notes: formData.notes.trim(),
+        items: cartItems.map((item) => {
+          const base = {
+            quantity: Number(item.quantity),
+          };
+
+          if (item.isConsumable) {
+            return {
+              ...base,
+              consumable_id: Number(item.productId),
+            };
+          }
+
+          return {
+            ...base,
+            product_id: Number(item.productId),
+          };
+        }),
       };
 
-      const response = await fetch('http://localhost:8000/api/orders/', {
+      const orderResponse = await fetch(`${API_BASE}/orders/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify(orderPayload),
       });
 
-      if (!response.ok) {
-        throw new Error('خطا در ثبت سفارش');
+      const orderResult = await readResponseBody(orderResponse);
+
+      if (!orderResponse.ok) {
+        console.error('Order API error status:', orderResponse.status);
+        console.error('Order API error body:', orderResult);
+        throw new Error(
+          orderResult?.detail ||
+            orderResult?.message ||
+            JSON.stringify(orderResult) ||
+            'خطا در ثبت سفارش'
+        );
       }
 
-      const result = await response.json();
+      const orderId = orderResult?.order_id ?? orderResult?.id;
+      if (!orderId) {
+        throw new Error('شماره سفارش دریافت نشد');
+      }
 
-      clearCart();
-      router.push(`/orders/${result.id}?success=true`);
+      const paymentResponse = await fetch(`${API_BASE}/payment/request/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+
+      const paymentResult = await readResponseBody(paymentResponse);
+
+      if (!paymentResponse.ok) {
+        console.error('Payment API error status:', paymentResponse.status);
+        console.error('Payment API error body:', paymentResult);
+        throw new Error(
+          paymentResult?.message ||
+            paymentResult?.detail ||
+            JSON.stringify(paymentResult) ||
+            'خطا در ایجاد لینک پرداخت'
+        );
+      }
+
+      if (!paymentResult?.success || !paymentResult?.payment_url) {
+        throw new Error(paymentResult?.message || 'لینک پرداخت دریافت نشد');
+      }
+
+      window.location.href = paymentResult.payment_url;
     } catch (error) {
-      console.error('Order submission error:', error);
-      alert('خطا در ثبت سفارش. لطفا دوباره تلاش کنید.');
+      console.error('Checkout error:', error);
+      alert(error instanceof Error ? error.message : 'خطا در ثبت سفارش. لطفا دوباره تلاش کنید.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isHydrated) {
+  if (!hydrated) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white pt-20">
         <div className="border-b border-white/5">
@@ -217,7 +284,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (items.length === 0) {
+  if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white pt-20">
         <div className="border-b border-white/5">
@@ -283,6 +350,7 @@ export default function CheckoutPage() {
             <p className="text-zinc-400 text-sm sm:text-base mt-2">
               اطلاعات خود را وارد کنید و سفارش را نهایی کنید
             </p>
+            {errors.cart && <p className="text-rose-400 text-sm mt-2">{errors.cart}</p>}
           </div>
 
           <Link
@@ -297,7 +365,6 @@ export default function CheckoutPage() {
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
             <div className="lg:col-span-8 space-y-6">
-              {/* Customer Information */}
               <div className="bg-zinc-900/40 border border-white/10 rounded-3xl p-5 sm:p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
@@ -371,11 +438,24 @@ export default function CheckoutPage() {
                     {errors.phone && <p className="text-rose-400 text-xs mt-1">{errors.phone}</p>}
                   </div>
 
-                  
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-bold mb-2">
+                      ایمیل <span className="text-zinc-500">(اختیاری)</span>
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-zinc-950 border border-white/10 rounded-2xl focus:outline-none focus:border-violet-500 transition-colors"
+                      placeholder="name@example.com"
+                      dir="ltr"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Shipping Address */}
               <div className="bg-zinc-900/40 border border-white/10 rounded-3xl p-5 sm:p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
@@ -467,9 +547,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-      
-
-              {/* Order Notes */}
               <div className="bg-zinc-900/40 border border-white/10 rounded-3xl p-5 sm:p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
@@ -490,16 +567,15 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Order Summary Sidebar */}
             <div className="lg:col-span-4">
               <div className="lg:sticky lg:top-24 space-y-6">
                 <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-5 sm:p-6">
                   <h2 className="text-xl font-black mb-5">سفارش شما</h2>
 
                   <div className="space-y-3 mb-5 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                    {items.map((item) => (
+                    {cartItems.map((item) => (
                       <div
-                        key={item.productId}
+                        key={`${item.isConsumable ? 'consumable' : 'product'}-${item.productId}`}
                         className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-950/50 border border-white/5"
                       >
                         <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-zinc-900 shrink-0">
@@ -520,13 +596,12 @@ export default function CheckoutPage() {
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-sm line-clamp-1">{item.name}</div>
                           <div className="text-xs text-zinc-500 mt-0.5">
-                            {item.quantity} عدد × {formatPrice(item.finalPrice || item.price || 0)}{' '}
-                            تومان
+                            {item.quantity} عدد × {formatPrice(item.finalPrice || item.price || 0)} تومان
                           </div>
                         </div>
 
                         <div className="font-black text-sm" suppressHydrationWarning>
-                          {formatPrice((item.finalPrice || item.price || 0) * item.quantity)}
+                          {formatPrice((item.finalPrice || item.price || 0) * item.quantity)} تومان
                         </div>
                       </div>
                     ))}
@@ -543,14 +618,14 @@ export default function CheckoutPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-zinc-400">جمع جزء</span>
                       <span className="font-bold" suppressHydrationWarning>
-                        {formatPrice(subtotal)} تومان
+                        {formatPrice(subtotalToman)} تومان
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-zinc-400">هزینه ارسال</span>
                       <span className="font-bold" suppressHydrationWarning>
-                        {formatPrice(shippingCost)} تومان
+                        {formatPrice(shippingCostToman)} تومان
                       </span>
                     </div>
 
@@ -572,8 +647,17 @@ export default function CheckoutPage() {
                         className="text-2xl font-black text-violet-400"
                         suppressHydrationWarning
                       >
-                        {formatPrice(totalPrice)} تومان
+                        {formatPrice(totalPriceToman)} تومان
                       </span>
+                    </div>
+
+                    <div className="text-xs text-zinc-400 leading-6">
+                      <div className="flex items-center justify-between">
+                        <span>مبلغ درگاه</span>
+                        <span className="font-bold" suppressHydrationWarning>
+                          {formatPrice(totalPriceRial)} ریال
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -586,9 +670,7 @@ export default function CheckoutPage() {
                     <div>
                       <div className="font-bold text-sm">ارسال سریع</div>
                       <div className="text-[11px] text-zinc-400">
-                        {totalWeightGrams < SHIPPING_THRESHOLD_GRAMS
-                          ? 'ارسال معمولی'
-                          : 'ارسال سنگین'}
+                        {totalWeightGrams < SHIPPING_THRESHOLD_GRAMS ? 'ارسال معمولی' : 'ارسال سنگین'}
                       </div>
                     </div>
                   </div>
@@ -617,7 +699,8 @@ export default function CheckoutPage() {
                   ) : (
                     <>
                       <CheckCircle2 size={20} />
-پرداخت                        </>
+                      پرداخت
+                    </>
                   )}
                 </button>
               </div>
