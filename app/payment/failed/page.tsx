@@ -2,8 +2,9 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 
-export default function PaymentFailedPage() {
+function PaymentFailedContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order_id')
   const error = searchParams.get('error')
@@ -71,5 +72,13 @@ export default function PaymentFailedPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PaymentFailedPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-16 text-center">درحال بارگذاری...</div>}>
+      <PaymentFailedContent />
+    </Suspense>
   )
 }

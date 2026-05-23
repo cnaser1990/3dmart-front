@@ -8,7 +8,7 @@ import { Toaster } from 'react-hot-toast';
 import { CartProvider } from '@/context/CartContext';
 
 export const metadata: Metadata = {
-  title: "3DMart | پلتفرم هوشمند پرینت سه‌بعدی",
+  title: "3DMart | بازارگاه پرینت سه‌بعدی",
   description: "سفارش پرینت، فیگور، دکوری و خرید مواد مصرفی پرینتر سه‌بعدی",
 };
 

@@ -42,6 +42,7 @@ export default function AddToCartSection({ product }: { product: Product }) {
 
     addItem(
       {
+        id: product.id,
         productId: product.id,
         slug: product.slug,
         name: product.name,
@@ -53,6 +54,7 @@ export default function AddToCartSection({ product }: { product: Product }) {
         weightGrams: weightInGrams,
         brand: product.brand,
         isConsumable: false,
+        type: 'product',
       },
       quantity
     );

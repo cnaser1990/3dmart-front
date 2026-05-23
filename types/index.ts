@@ -80,6 +80,7 @@ export type Consumable = {
 // ─── Cart ─────────────────────────────────────────────
 
 export interface CartItem {
+  id: number;
   productId: number;
   name: string;
   slug: string;
@@ -92,6 +93,7 @@ export interface CartItem {
   weightGrams: number;
   brand?: string;
   isConsumable: boolean;
+  type: 'product' | 'consumable';
 }
 
 // ─── Order ───────────────────────────────────────────
