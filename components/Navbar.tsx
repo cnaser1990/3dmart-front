@@ -11,7 +11,7 @@ const navLinks = [
   { href: '/consumables', label: 'مواد مصرفی' },
   { href: '/faq', label: 'سوالات متداول' },
   { href: '/terms', label: 'قوانین' },
-  { href: 'https://rubika.ir/neseron', label: 'محصول خودتون رو سفارش بدید!' },
+  { href: '/#custom-order', label: 'محصول خودتون رو سفارش بدید!', scroll: true },
 ];
 
 export default function Navbar() {
