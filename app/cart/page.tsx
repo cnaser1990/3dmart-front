@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useMemo, useSyncExternalStore, useEffect } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import {
   ArrowLeft,
   ShoppingCart,
@@ -15,9 +15,6 @@ import {
   Weight,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-
-const CART_KEY = 'cart';
-const CART_CHANGE_EVENT = 'cart-change';
 
 const SHIPPING_THRESHOLD_GRAMS = 500;
 const SHIPPING_LIGHT = 100_000;
@@ -33,77 +30,6 @@ function formatPrice(value: number) {
   return value.toLocaleString('fa-IR');
 }
 
-interface StoredCartItem {
-  productId: number;
-  quantity: number;
-  stock?: number;
-  isConsumable?: boolean;
-  [key: string]: unknown;
-}
-
-function migrateCartItems() {
-  if (typeof window === 'undefined') return;
-
-  try {
-    const raw = localStorage.getItem(CART_KEY);
-    if (!raw) return;
-
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return;
-
-    const items = parsed as StoredCartItem[];
-    let hasChanges = false;
-
-    const migratedItems = items.map((item) => {
-      if (item.isConsumable === undefined) {
-        hasChanges = true;
-        return { ...item, isConsumable: false };
-      }
-      return item;
-    });
-
-    if (hasChanges) {
-      localStorage.setItem(CART_KEY, JSON.stringify(migratedItems));
-      window.dispatchEvent(new Event(CART_CHANGE_EVENT));
-    }
-  } catch (e) {
-    console.error('Cart migration error:', e);
-  }
-}
-
-function updateCartItemQuantity(productId: number, delta: number) {
-  if (typeof window === 'undefined') return;
-
-  try {
-    const raw = localStorage.getItem(CART_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    const items: StoredCartItem[] = Array.isArray(parsed) ? (parsed as StoredCartItem[]) : [];
-
-    const nextItems = items
-      .map((item) => {
-        if (item.productId !== productId) return item;
-
-        const currentQty = item.quantity || 0;
-        const nextQty = currentQty + delta;
-
-        if (item.isConsumable === true) {
-          const stock = item.stock ?? 9999;
-          if (delta > 0 && stock > 0 && nextQty > stock) {
-            return item;
-          }
-        }
-
-        return { ...item, quantity: nextQty };
-      })
-      .filter((item) => item.quantity > 0);
-
-    localStorage.setItem(CART_KEY, JSON.stringify(nextItems));
-    window.dispatchEvent(new Event(CART_CHANGE_EVENT));
-  } catch (e) {
-    console.error('Cart update error:', e);
-  }
-}
-
 function useHydrated() {
   return useSyncExternalStore(
     () => () => {},
@@ -113,19 +39,23 @@ function useHydrated() {
 }
 
 export default function CartPage() {
-  const { items, removeItem, clearCart, getTotalItems, getTotalWeightGrams } = useCart();
+  const { 
+    items, 
+    removeItem, 
+    clearCart, 
+    getTotalItems, 
+    getTotalWeightGrams,
+    updateQuantity,
+  } = useCart();
+  
   const isHydrated = useHydrated();
-
-  useEffect(() => {
-    migrateCartItems();
-  }, []);
 
   const totalItems = getTotalItems();
   const totalWeightGrams = getTotalWeightGrams();
 
   const subtotal = useMemo(() => {
     return items.reduce(
-      (sum, item) => sum + (item.finalPrice || item.price || 0) * item.quantity,
+      (sum, item) => sum + item.finalPrice * item.quantity,
       0
     );
   }, [items]);
@@ -237,14 +167,18 @@ export default function CartPage() {
               </div>
 
               {items.map((item) => {
-                const itemTotal = (item.finalPrice || item.price || 0) * item.quantity;
+                const itemTotal = item.finalPrice * item.quantity;
                 const isConsumableItem = item.isConsumable === true;
                 const stock = item.stock ?? 9999;
                 const canIncrease = isConsumableItem ? item.quantity < stock : true;
 
+                const uniqueKey = item.variantId 
+                  ? `${item.productId}-${item.variantId}` 
+                  : `${item.productId}`;
+
                 return (
                   <div
-                    key={item.productId}
+                    key={uniqueKey}
                     className="bg-zinc-900/40 border border-white/10 rounded-3xl p-4 sm:p-5"
                   >
                     <div className="flex flex-col sm:flex-row gap-4">
@@ -278,6 +212,19 @@ export default function CartPage() {
                             {item.brand && (
                               <p className="text-xs text-zinc-500 mt-0.5">{item.brand}</p>
                             )}
+                            {item.variantColor && (
+                              <div className="flex items-center gap-2 mt-1">
+                                {item.variantColorHex && (
+                                  <span 
+                                    className="inline-block w-3 h-3 rounded-full border border-white/20" 
+                                    style={{ backgroundColor: item.variantColorHex }}
+                                  />
+                                )}
+                                <span className="text-xs text-violet-400">
+                                  رنگ: {item.variantColor}
+                                </span>
+                              </div>
+                            )}
                             <span
                               className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                 isConsumableItem
@@ -291,7 +238,7 @@ export default function CartPage() {
 
                           <button
                             type="button"
-                            onClick={() => removeItem(item.productId)}
+                            onClick={() => removeItem(item.productId, item.variantId)}
                             className="inline-flex items-center gap-2 self-start px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs sm:text-sm font-bold transition-colors"
                           >
                             <Trash2 size={16} />
@@ -303,7 +250,14 @@ export default function CartPage() {
                           <div className="flex items-center bg-zinc-950 border border-white/10 rounded-2xl w-fit">
                             <button
                               type="button"
-                              onClick={() => updateCartItemQuantity(item.productId, -1)}
+                              onClick={() => {
+                                const newQty = item.quantity - 1;
+                                if (newQty > 0) {
+                                  updateQuantity(item.productId, newQty, item.variantId);
+                                } else {
+                                  removeItem(item.productId, item.variantId);
+                                }
+                              }}
                               className="w-11 h-11 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/5 transition-colors rounded-r-2xl"
                             >
                               <Minus size={18} />
@@ -315,7 +269,12 @@ export default function CartPage() {
 
                             <button
                               type="button"
-                              onClick={() => updateCartItemQuantity(item.productId, 1)}
+                              onClick={() => {
+                                const newQty = item.quantity + 1;
+                                if (canIncrease) {
+                                  updateQuantity(item.productId, newQty, item.variantId);
+                                }
+                              }}
                               disabled={!canIncrease}
                               title={!canIncrease ? 'محدودیت موجودی' : 'افزایش تعداد'}
                               className="w-11 h-11 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/5 transition-colors rounded-l-2xl disabled:opacity-40 disabled:cursor-not-allowed"
@@ -329,7 +288,7 @@ export default function CartPage() {
                               قیمت واحد
                             </div>
                             <div className="font-black text-white text-lg">
-                              {formatPrice(item.finalPrice || item.price || 0)} تومان
+                              {formatPrice(item.finalPrice)} تومان
                             </div>
                             <div className="text-zinc-500 text-xs mt-1">
                               مجموع آیتم: {formatPrice(itemTotal)} تومان

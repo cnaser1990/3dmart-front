@@ -1,173 +1,237 @@
-// context/CartContext.tsx
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useSyncExternalStore,
-  ReactNode,
-} from 'react';
-import type { CartItem } from '@/types';
-
-type CartContextType = {
-  items: CartItem[];
-  addItem: (product: Omit<CartItem, 'quantity'>, quantity: number) => void;
-  isInCart: (productId: number) => boolean;
-  getQuantity: (productId: number) => number;
-  getTotalItems: () => number;
-  getTotalWeightGrams: () => number;
-  removeItem: (productId: number) => void;
-  clearCart: () => void;
-};
-
-const CartContext = createContext<CartContextType | undefined>(undefined);
+import React, { createContext, useContext, useEffect, useCallback, useSyncExternalStore } from 'react';
+import { CartItem } from '@/types';
 
 const CART_KEY = 'cart';
 const CART_CHANGE_EVENT = 'cart-change';
-const EMPTY_CART: CartItem[] = [];
 
-let cachedCartRaw: string | null = null;
-let cachedCartValue: CartItem[] = EMPTY_CART;
-
-function safeParseCart(raw: string | null): CartItem[] {
-  if (!raw) return EMPTY_CART;
-
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : EMPTY_CART;
-  } catch {
-    return EMPTY_CART;
-  }
+interface CartContextType {
+  items: CartItem[];
+  addItem: (item: Omit<CartItem, 'quantity'>, qty?: number) => void;
+  removeItem: (productId: number, variantId?: number | null) => void;
+  updateQuantity: (productId: number, quantity: number, variantId?: number | null) => void;
+  clearCart: () => void;
+  getTotalItems: () => number;
+  getTotalPrice: () => number;
+  getTotalWeightGrams: () => number;
+  getQuantity: (productId: number, variantId?: number | null) => number;
+  isInCart: (productId: number, variantId?: number | null) => boolean;
 }
 
-function readCartFromStorage(): CartItem[] {
-  if (typeof window === 'undefined') return EMPTY_CART;
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
-  const raw = localStorage.getItem(CART_KEY);
+// ✅ Cache the server snapshot outside the component
+const emptyCartSnapshot: CartItem[] = [];
 
-  if (raw === cachedCartRaw) {
-    return cachedCartValue;
-  }
-
-  cachedCartRaw = raw;
-  cachedCartValue = safeParseCart(raw);
-  return cachedCartValue;
+// ✅ Normalize variantId to always be null or number (never undefined)
+function normalizeVariantId(variantId?: number | null): number | null {
+  return variantId ?? null;
 }
 
-function writeCartToStorage(items: CartItem[]) {
-  if (typeof window === 'undefined') return;
+// ✅ Create a store for cart state
+const cartStore = {
+  items: [] as CartItem[],
+  listeners: new Set<() => void>(),
 
-  const raw = JSON.stringify(items);
-  cachedCartRaw = raw;
-  cachedCartValue = items;
-  localStorage.setItem(CART_KEY, raw);
-  window.dispatchEvent(new Event(CART_CHANGE_EVENT));
-}
+  getSnapshot() {
+    return this.items;
+  },
 
-function subscribe(listener: () => void) {
-  if (typeof window === 'undefined') return () => {};
+  getServerSnapshot() {
+    return emptyCartSnapshot;
+  },
 
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === CART_KEY) {
-      listener();
+  subscribe(callback: () => void) {
+    this.listeners.add(callback);
+    return () => {
+      this.listeners.delete(callback);
+    };
+  },
+
+  setItems(newItems: CartItem[]) {
+    this.items = newItems;
+    this.listeners.forEach((listener) => listener());
+  },
+
+  loadFromStorage() {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const stored = localStorage.getItem(CART_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const newItems = Array.isArray(parsed) ? parsed : [];
+        if (JSON.stringify(this.items) !== JSON.stringify(newItems)) {
+          this.items = newItems;
+          this.listeners.forEach((listener) => listener());
+        }
+      }
+    } catch (error) {
+      console.error('Error loading cart:', error);
+      this.items = [];
     }
-  };
+  },
 
-  const onCartChange = () => {
-    listener();
-  };
+  saveToStorage(items: CartItem[]) {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      localStorage.setItem(CART_KEY, JSON.stringify(items));
+      window.dispatchEvent(new Event(CART_CHANGE_EVENT));
+    } catch (error) {
+      console.error('Error saving cart:', error);
+    }
+  },
+};
 
-  window.addEventListener('storage', onStorage);
-  window.addEventListener(CART_CHANGE_EVENT, onCartChange);
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const items = useSyncExternalStore(
+    cartStore.subscribe.bind(cartStore),
+    cartStore.getSnapshot.bind(cartStore),
+    cartStore.getServerSnapshot.bind(cartStore)
+  );
 
-  return () => {
-    window.removeEventListener('storage', onStorage);
-    window.removeEventListener(CART_CHANGE_EVENT, onCartChange);
-  };
-}
+  useEffect(() => {
+    cartStore.loadFromStorage();
+    
+    const handleStorageChange = () => {
+      cartStore.loadFromStorage();
+    };
 
-function getSnapshot() {
-  return readCartFromStorage();
-}
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(CART_CHANGE_EVENT, handleStorageChange);
 
-function getServerSnapshot() {
-  return EMPTY_CART;
-}
-
-export function CartProvider({ children }: { children: ReactNode }) {
-  const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-
-  const addItem = useCallback((product: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
-    const currentItems = readCartFromStorage();
-
-    const nextItems = currentItems.some((item) => item.productId === product.productId)
-      ? currentItems.map((item) =>
-          item.productId === product.productId
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        )
-      : [...currentItems, { ...product, quantity }];
-
-    writeCartToStorage(nextItems);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(CART_CHANGE_EVENT, handleStorageChange);
+    };
   }, []);
 
-  const removeItem = useCallback((productId: number) => {
-    const currentItems = readCartFromStorage();
-    const nextItems = currentItems.filter((item) => item.productId !== productId);
+  const addItem = useCallback((item: Omit<CartItem, 'quantity'>, qty: number = 1) => {
+    const currentItems = cartStore.getSnapshot();
+    const itemVariantId = normalizeVariantId(item.variantId);
+    
+    const existingIndex = currentItems.findIndex(
+      (i) => i.productId === item.productId && 
+             normalizeVariantId(i.variantId) === itemVariantId
+    );
 
-    writeCartToStorage(nextItems);
+    let newItems: CartItem[];
+
+    if (existingIndex > -1) {
+      newItems = [...currentItems];
+      const existingItem = newItems[existingIndex];
+      newItems[existingIndex] = {
+        ...existingItem,
+        quantity: existingItem.quantity + qty,
+      };
+    } else {
+      newItems = [
+        ...currentItems,
+        {
+          ...item,
+          variantId: itemVariantId,
+          quantity: qty,
+        },
+      ];
+    }
+
+    cartStore.saveToStorage(newItems);
+    cartStore.setItems(newItems);
+  }, []);
+
+  const removeItem = useCallback((productId: number, variantId?: number | null) => {
+    const currentItems = cartStore.getSnapshot();
+    const normalizedVariantId = normalizeVariantId(variantId);
+    
+    const newItems = currentItems.filter(
+      (item) => !(item.productId === productId && 
+                 normalizeVariantId(item.variantId) === normalizedVariantId)
+    );
+    
+    cartStore.saveToStorage(newItems);
+    cartStore.setItems(newItems);
+  }, []);
+
+  const updateQuantity = useCallback((productId: number, quantity: number, variantId?: number | null) => {
+    const currentItems = cartStore.getSnapshot();
+    const normalizedVariantId = normalizeVariantId(variantId);
+    
+    const newItems = currentItems
+      .map((item) => {
+        if (item.productId === productId && 
+            normalizeVariantId(item.variantId) === normalizedVariantId) {
+          return { ...item, quantity };
+        }
+        return item;
+      })
+      .filter((item) => item.quantity > 0);
+
+    cartStore.saveToStorage(newItems);
+    cartStore.setItems(newItems);
   }, []);
 
   const clearCart = useCallback(() => {
-    writeCartToStorage([]);
+    cartStore.saveToStorage([]);
+    cartStore.setItems([]);
   }, []);
 
-  const isInCart = useCallback(
-    (productId: number) => items.some((item) => item.productId === productId),
-    [items]
-  );
+  const getTotalItems = useCallback(() => {
+    return items.reduce((total, item) => total + item.quantity, 0);
+  }, [items]);
 
-  const getQuantity = useCallback(
-    (productId: number) => {
-      const item = items.find((i) => i.productId === productId);
-      return item?.quantity || 0;
-    },
-    [items]
-  );
+  const getTotalPrice = useCallback(() => {
+    return items.reduce(
+      (total, item) => total + item.finalPrice * item.quantity,
+      0
+    );
+  }, [items]);
 
-  const getTotalItems = useCallback(
-    () => items.reduce((total, item) => total + item.quantity, 0),
-    [items]
-  );
+  const getTotalWeightGrams = useCallback(() => {
+    return items.reduce(
+      (total, item) => total + (item.weightGrams || 0) * item.quantity,
+      0
+    );
+  }, [items]);
 
-  const getTotalWeightGrams = useCallback(
-    () => items.reduce((total, item) => total + (item.weightGrams || 0) * item.quantity, 0),
-    [items]
-  );
+  const getQuantity = useCallback((productId: number, variantId?: number | null) => {
+    const normalizedVariantId = normalizeVariantId(variantId);
+    const item = items.find(
+      (i) => i.productId === productId && 
+             normalizeVariantId(i.variantId) === normalizedVariantId
+    );
+    return item?.quantity || 0;
+  }, [items]);
 
-  const value = useMemo(
-    () => ({
-      items,
-      addItem,
-      isInCart,
-      getQuantity,
-      getTotalItems,
-      getTotalWeightGrams,
-      removeItem,
-      clearCart,
-    }),
-    [items, addItem, isInCart, getQuantity, getTotalItems, getTotalWeightGrams, removeItem, clearCart]
-  );
+  const isInCart = useCallback((productId: number, variantId?: number | null) => {
+    const normalizedVariantId = normalizeVariantId(variantId);
+    return items.some(
+      (i) => i.productId === productId && 
+             normalizeVariantId(i.variantId) === normalizedVariantId
+    );
+  }, [items]);
+
+  const value: CartContextType = {
+    items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    getTotalItems,
+    getTotalPrice,
+    getTotalWeightGrams,
+    getQuantity,
+    isInCart,
+  };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
-export const useCart = () => {
+export function useCart() {
   const context = useContext(CartContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
-};
+}

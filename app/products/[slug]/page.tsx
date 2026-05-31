@@ -4,24 +4,11 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types';
-import {
-  Info,
-  Package,
-  Truck,
-  ShieldCheck,
-  Cuboid,
-  Clock,
-} from 'lucide-react';
+import { Cuboid } from 'lucide-react';
 import ProductGallery from '@/components/ProductGallery';
 import AddToCartSection from '@/components/AddToCartSection';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
-const getImageUrl = (path: string | null | undefined) => {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  return `http://localhost:8000${path}`;
-};
 
 async function getProduct(slug: string): Promise<Product | null> {
   try {
@@ -64,11 +51,10 @@ export default async function ProductDetailPage({
 
   const relatedProducts = await getRelatedProducts(product.category?.id);
   const filteredRelated = relatedProducts.filter((p) => p.slug !== slug);
-  const validImages = product.images?.filter((img) => img.image) || [];
+  const validImages = product.images?.filter((img) => !!img.image) || [];
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-20">
-
       {/* Breadcrumb */}
       <div className="border-b border-white/5">
         <div className="container mx-auto px-4 sm:px-6 py-4 max-w-7xl">
@@ -97,7 +83,6 @@ export default async function ProductDetailPage({
       {/* Main Content */}
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12 lg:mb-20">
-
           {/* Gallery */}
           <div className="lg:sticky lg:top-24 lg:self-start">
             <ProductGallery images={validImages} name={product.name} />
@@ -105,7 +90,6 @@ export default async function ProductDetailPage({
 
           {/* Info */}
           <div>
-
             {/* Tags */}
             {product.tags && product.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
@@ -132,77 +116,11 @@ export default async function ProductDetailPage({
               </p>
             )}
 
-            {/* Price Box */}
-            <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 mb-6">
-
-              {/* Price */}
-              <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-3">
-                <span className="text-3xl sm:text-4xl md:text-5xl font-black text-white">
-                  {product.final_price.toLocaleString('fa-IR')}
-                </span>
-                <span className="text-zinc-400 text-base sm:text-lg">تومان</span>
-              </div>
-
-              {/* Discount */}
-              {product.discount_percent > 0 && (
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
-                  <span className="text-zinc-500 line-through text-lg sm:text-xl">
-                    {product.price.toLocaleString('fa-IR')}
-                  </span>
-                  <span className="bg-rose-500 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-full">
-                    {product.discount_percent}٪ تخفیف
-                  </span>
-                </div>
-              )}
-
-              {/* Stock Status */}
-              <div className="pt-4 border-t border-white/10">
-                {product.is_active ? (
-                  product.is_available ? (
-                    /* AVAILABLE */
-                    <div className="flex items-center gap-2 text-emerald-400">
-                      <ShieldCheck size={20} className="flex-shrink-0" />
-                      <span className="font-bold text-sm sm:text-base">
-                        {product.availability_text}
-                      </span>
-                    </div>
-                  ) : (
-                    /* NEEDS PREPARATION */
-                    <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-2xl p-4">
-                      <div className="flex items-center gap-2 text-amber-400 mb-3">
-                        <Clock size={20} className="flex-shrink-0" />
-                        <span className="font-bold">نیاز به آماده‌سازی</span>
-                      </div>
-                      <p className="font-bold text-cyan-300 text-base">
-                        زمان آماده‌سازی:{' '}
-                        <span className="text-white">
-                          {product.preparation_time_days} روز کاری
-                        </span>
-                      </p>
-                      <p className="text-cyan-300/70 text-sm mt-2 leading-relaxed">
-                        پس از ثبت سفارش، محصول پرینت شده و برای شما ارسال خواهد شد.
-                      </p>
-                      {product.availability_text && (
-                        <p className="text-xs text-cyan-400 mt-4 pt-3 border-t border-cyan-500/10 italic">
-                          {product.availability_text}
-                        </p>
-                      )}
-                    </div>
-                  )
-                ) : (
-                  /* INACTIVE */
-                  <div className="flex items-center gap-2 text-rose-400">
-                    <Info size={20} className="flex-shrink-0" />
-                    <span className="font-bold text-sm sm:text-base">
-                      این محصول فعلاً غیرفعال است
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Purchase Section */}
+            <AddToCartSection product={product} />
 
             {/* Specs */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-6">
               <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-3 sm:p-4">
                 <div className="text-zinc-500 text-xs sm:text-sm mb-1">جنس</div>
                 <div className="font-bold text-white text-sm sm:text-base">
@@ -231,42 +149,6 @@ export default async function ProductDetailPage({
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Add to Cart - Client Component */}
-            <AddToCartSection product={product} />
-
-            {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-6 bg-gradient-to-br from-violet-500/10 to-cyan-500/10 border border-white/10 rounded-3xl">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Truck size={20} className="text-violet-400" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs sm:text-sm">ارسال سریع</div>
-                  <div className="text-[10px] sm:text-xs text-zinc-400">تحویل ۳ روزه</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <ShieldCheck size={20} className="text-cyan-400" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs sm:text-sm">گارانتی اصالت</div>
-                  <div className="text-[10px] sm:text-xs text-zinc-400">ضمانت کیفیت</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Package size={20} className="text-rose-400" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs sm:text-sm">بسته‌بندی ویژه</div>
-                  <div className="text-[10px] sm:text-xs text-zinc-400">کاملاً ایمن</div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -308,7 +190,7 @@ function RelatedProducts({ products }: { products: Product[] }) {
             <div className="aspect-square bg-zinc-950 relative overflow-hidden">
               {product.primary_image ? (
                 <Image
-                  src={getImageUrl(product.primary_image)}
+                  src={product.primary_image}
                   alt={product.name}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-500"

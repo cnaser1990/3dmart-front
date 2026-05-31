@@ -68,14 +68,20 @@ interface FormErrors {
   [key: string]: string;
 }
 
+// ✅ Updated CartItem type to include variantId and variantColor
 type CartItem = {
   productId: number;
+  variantId?: number | null;
+  variantName?: string;
+  variantColor?: string;
+  variantColorHex?: string | null;
   name: string;
   quantity: number;
   price?: number;
   finalPrice?: number;
   image?: string | null;
   isConsumable?: boolean;
+  type?: 'product' | 'consumable';
 };
 
 export default function CheckoutPage() {
@@ -188,17 +194,28 @@ export default function CheckoutPage() {
             quantity: Number(item.quantity),
           };
 
-          if (item.isConsumable) {
+          if (item.isConsumable || item.type === 'consumable') {
             return {
               ...base,
               consumable_id: Number(item.productId),
             };
           }
 
-          return {
+          // ✅ Include variant_id if available
+          const itemPayload: {
+            quantity: number;
+            product_id?: number;
+            variant_id?: number | null;
+          } = {
             ...base,
             product_id: Number(item.productId),
           };
+
+          if (item.variantId) {
+            itemPayload.variant_id = item.variantId;
+          }
+
+          return itemPayload;
         }),
       };
 
@@ -573,38 +590,59 @@ export default function CheckoutPage() {
                   <h2 className="text-xl font-black mb-5">سفارش شما</h2>
 
                   <div className="space-y-3 mb-5 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                    {cartItems.map((item) => (
-                      <div
-                        key={`${item.isConsumable ? 'consumable' : 'product'}-${item.productId}`}
-                        className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-950/50 border border-white/5"
-                      >
-                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-zinc-900 shrink-0">
-                          {item.image ? (
-                            <Image
-                              src={getImageUrl(item.image)}
-                              alt={item.name}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Home size={24} className="text-zinc-700" />
-                            </div>
-                          )}
-                        </div>
+                    {cartItems.map((item) => {
+                      // ✅ Create unique key using productId and variantId
+                      const uniqueKey = item.variantId
+                        ? `${item.type === 'consumable' || item.isConsumable ? 'consumable' : 'product'}-${item.productId}-${item.variantId}`
+                        : `${item.type === 'consumable' || item.isConsumable ? 'consumable' : 'product'}-${item.productId}`;
 
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-sm line-clamp-1">{item.name}</div>
-                          <div className="text-xs text-zinc-500 mt-0.5">
-                            {item.quantity} عدد × {formatPrice(item.finalPrice || item.price || 0)} تومان
+                      return (
+                        <div
+                          key={uniqueKey}
+                          className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-950/50 border border-white/5"
+                        >
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-zinc-900 shrink-0">
+                            {item.image ? (
+                              <Image
+                                src={getImageUrl(item.image)}
+                                alt={item.name}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Home size={24} className="text-zinc-700" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm line-clamp-1">{item.name}</div>
+                            {/* ✅ Show variant color if available */}
+                            {item.variantColor && (
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                {item.variantColorHex && (
+                                  <span
+                                    className="inline-block w-2.5 h-2.5 rounded-full border border-white/20"
+                                    style={{ backgroundColor: item.variantColorHex }}
+                                  />
+                                )}
+                                <span className="text-[10px] text-zinc-400">
+                                  {item.variantColor}
+                                </span>
+                              </div>
+                            )}
+                            <div className="text-xs text-zinc-500 mt-0.5">
+                              {item.quantity} عدد × {formatPrice(item.finalPrice || item.price || 0)} تومان
+                            </div>
+                          </div>
+
+                          <div className="font-black text-sm" suppressHydrationWarning>
+                            {formatPrice((item.finalPrice || item.price || 0) * item.quantity)} تومان
                           </div>
                         </div>
-
-                        <div className="font-black text-sm" suppressHydrationWarning>
-                          {formatPrice((item.finalPrice || item.price || 0) * item.quantity)} تومان
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="space-y-3 pt-4 border-t border-white/10">

@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Cuboid } from 'lucide-react';
 
@@ -14,7 +14,7 @@ const getImageUrl = (path: string | null | undefined) => {
 
 interface GalleryImage {
   id: number;
-  image: string;
+  image: string | null;
   alt_text: string;
 }
 
@@ -25,9 +25,14 @@ export default function ProductGallery({
   images: GalleryImage[];
   name: string;
 }) {
+  const safeImages = useMemo(
+    () => images.filter((img): img is GalleryImage & { image: string } => Boolean(img.image)),
+    [images]
+  );
+
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  if (images.length === 0) {
+  if (safeImages.length === 0) {
     return (
       <div className="aspect-square bg-zinc-900 rounded-3xl flex items-center justify-center border border-white/10">
         <Cuboid size={80} className="sm:w-32 sm:h-32 text-zinc-700" strokeWidth={1} />
@@ -40,20 +45,22 @@ export default function ProductGallery({
       {/* Main Image */}
       <div className="relative aspect-square bg-zinc-900 rounded-3xl mb-3 sm:mb-4 overflow-hidden border border-white/10">
         <Image
-          src={getImageUrl(images[selectedIndex].image)}
-          alt={images[selectedIndex].alt_text || name}
+          src={getImageUrl(safeImages[selectedIndex].image)}
+          alt={safeImages[selectedIndex].alt_text || name}
           fill
           className="object-cover transition-opacity duration-300"
           priority
+          sizes="(max-width: 1024px) 100vw, 50vw"
         />
       </div>
 
       {/* Thumbnails */}
-      {images.length > 1 && (
+      {safeImages.length > 1 && (
         <div className="grid grid-cols-4 gap-2 sm:gap-3">
-          {images.map((img, index) => (
+          {safeImages.map((img, index) => (
             <button
               key={img.id}
+              type="button"
               onClick={() => setSelectedIndex(index)}
               className={`aspect-square rounded-xl sm:rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
                 index === selectedIndex

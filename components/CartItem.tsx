@@ -33,6 +33,7 @@ export default function CartItem({ item }: CartItemProps) {
           className="font-bold hover:text-blue-600 line-clamp-2"
         >
           {item.name}
+          {item.variantColor ? ` - ${item.variantColor}` : ''}
         </Link>
 
         <div className="text-sm text-gray-500 mt-1">

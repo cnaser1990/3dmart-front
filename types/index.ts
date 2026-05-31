@@ -4,10 +4,23 @@
 
 export interface ProductImage {
   id: number;
-  image: string;
+  image: string | null;
   alt_text: string;
   is_primary: boolean;
   order: number;
+}
+
+export interface ProductVariant {
+  id: number;
+  color_name: string;
+  color_code?: string | null;
+  price: number;
+  stock: number;
+  is_active: boolean;
+  image?: string | null;
+  order: number;
+  is_available?: boolean;
+  availability_text?: string;
 }
 
 export interface Category {
@@ -44,6 +57,8 @@ export interface Product {
   availability_text: string;
   primary_image?: string;
   images?: ProductImage[];
+  variants?: ProductVariant[];
+  has_variants?: boolean;
   category?: Category;
   tags?: Tag[];
   print_time_hours?: number;
@@ -82,6 +97,10 @@ export type Consumable = {
 export interface CartItem {
   id: number;
   productId: number;
+  variantId?: number | null;
+  variantName?: string;
+  variantColor?: string;
+  variantColorHex?: string | null;
   name: string;
   slug: string;
   price: number;
